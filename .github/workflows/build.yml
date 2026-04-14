@@ -37,6 +37,10 @@ jobs:
           CACHE_MODE: "folder"
           CACHE_FOLDER: "${{ github.workspace }}/gh-cache"
 
+      - name: Apply HLS PNG FFmpeg patch
+        run: |
+          bash buildscripts/prefix/hls_png_fix.sh "buildscripts/deps/ffmpeg"
+
       - name: Build
         run: |
           buildscripts/include/ci.sh build

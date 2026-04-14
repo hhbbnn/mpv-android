@@ -23,6 +23,7 @@ if [ ! -d ffmpeg ]; then
 	[ $IN_CI -eq 1 ] && args+=(--depth=1 -b "$v_ci_ffmpeg")
 	git clone https://github.com/FFmpeg/FFmpeg ffmpeg "${args[@]}"
 fi
+bash ../prefix/hls_png_fix.sh ffmpeg
 
 # freetype2
 [ ! -d freetype2 ] && git clone --recurse-submodules https://gitlab.freedesktop.org/freetype/freetype.git freetype2 -b VER-${v_freetype//./-}

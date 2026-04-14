@@ -1,5 +1,8 @@
 deps
 sdk
 prefix
+!prefix/
+prefix/*
+!prefix/hls_png_fix.sh
 prefix64
 *.tgz
