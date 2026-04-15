@@ -40,12 +40,14 @@ jobs:
 
       - name: Build
         run: |
-          buildscripts/include/ci.sh build
+          set -o pipefail
+          buildscripts/include/ci.sh build 2>&1 | tee ci-build.log
 
       - name: Collect build logs on failure
         if: failure()
         run: |
           mkdir -p ci-logs
+          if [ -f ci-build.log ]; then cp ci-build.log ci-logs/; fi
           python3 - <<'PY'
           import pathlib, shutil
           root = pathlib.Path("buildscripts/deps")
