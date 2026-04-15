@@ -5,7 +5,7 @@
 #   hls_png_fix.sh [path-to-ffmpeg-source]
 #
 # Build-time logs go to stderr with prefix [hls_png_fix].
-# Runtime logs use av_log(..., AV_LOG_VERBOSE): enable verbose mpv logging to see them.
+# Runtime logs use both AV_LOG_VERBOSE and AV_LOG_WARNING for visibility.
 
 log() {
 	printf '[hls_png_fix] %s\n' "$1" >&2
@@ -68,6 +68,7 @@ else:
 # demuxer after libavformat's probe step so PNG-disguised TS can be opened as mpegts.
 injected_block = (
     "            /* HLS_PNG_FIX_FORCE_MPEGTS: force mpegts demuxer for TS disguised as PNG */\n"
+    "            av_log(s, AV_LOG_WARNING, \"HLS_PNG_FIX_HIT: forcing mpegts after probe ret=%d\\n\", ret);\n"
     "            av_log(s, AV_LOG_VERBOSE, \"HLS_PNG_FIX: after av_probe_input_buffer ret=%d, "
     "forcing mpegts demuxer (no PNG header stripping)\\n\", ret);\n"
     "            if (ret < 0)\n"
@@ -78,6 +79,8 @@ injected_block = (
     "                    break;\n"
     "            if (!in_fmt)\n"
     "                in_fmt = av_find_input_format(\"mpegts\");\n"
+    "            av_log(s, AV_LOG_WARNING, \"HLS_PNG_FIX_HIT: selected sub-demuxer '%s'\\n\",\n"
+    "                 in_fmt && in_fmt->name ? in_fmt->name : \"(null)\");\n"
     "            av_log(s, AV_LOG_VERBOSE, \"HLS_PNG_FIX: selected sub-demuxer '%s'\\n\",\n"
     "                 in_fmt && in_fmt->name ? in_fmt->name : \"(null)\");\n"
 )
