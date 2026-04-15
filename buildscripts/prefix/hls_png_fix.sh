@@ -24,22 +24,33 @@ from pathlib import Path
 
 path = Path(sys.argv[1])
 text = path.read_text(encoding="utf-8")
+text = text.replace("\r\n", "\n")
 orig = text
 
-start = "pls->ctx->probesize = s->probesize > 0 ? s->probesize : 1024 * 4;"
-tail = "            av_free(url);\n        }\n\n        seg = current_segment(pls);"
-
-si = text.find(start)
-if si < 0:
+# Start: probe block first line (spacing may differ between checkouts / reformat).
+start_m = re.search(
+    r"^[ \t]*pls->ctx->probesize\s*=\s*s->probesize\s*>\s*0\s*\?\s*s->probesize\s*:\s*1024\s*\*\s*4\s*;",
+    text,
+    flags=re.M,
+)
+if not start_m:
     print("hls_png_fix: probe start marker not found", file=sys.stderr)
     sys.exit(1)
+si = start_m.start()
 
-ti = text.find(tail, si)
-if ti < 0:
+# End: success-path av_free(url) then closing brace of else, blank line, seg = ...
+end_m = re.search(
+    r"(^[ \t]*av_free\(url\);\s*\n)"
+    r"([ \t]*\}\s*\n)"
+    r"(\s*\n)"
+    r"([ \t]*seg\s*=\s*current_segment\(pls\)\s*;)",
+    text[si:],
+    flags=re.M,
+)
+if not end_m:
     print("hls_png_fix: probe end anchor not found", file=sys.stderr)
     sys.exit(1)
-
-end = ti + len("            av_free(url);\n")
+end = si + end_m.start(1) + len(end_m.group(1))
 
 new_inner = """            /* HLS_PNG_FIX_FORCE_MPEGTS: force mpegts demuxer for TS disguised as PNG */
             void *iter = NULL;
@@ -52,14 +63,13 @@ new_inner = """            /* HLS_PNG_FIX_FORCE_MPEGTS: force mpegts demuxer for
 
 text = text[:si] + new_inner + text[end:]
 
-# Remove the per-playlist url pointer (do not touch struct segment's char *url field).
-text, n = re.subn(
-    r"(^[\t ]*const AVInputFormat \*in_fmt = NULL;\n)[\t ]*char \*url;\n",
-    r"\1",
-    text,
-    count=1,
+# Remove playlist-local char *url (not struct segment's member).
+url_decl = re.compile(
+    r"(^[ \t]*(?:const|ff_const59)\s+AVInputFormat\s*\*in_fmt\s*=\s*NULL;\s*\n)"
+    r"[ \t]*char\s*\*\s*url;\s*\n",
     flags=re.M,
 )
+text, n = url_decl.subn(r"\1", text, count=1)
 if n != 1:
     print("hls_png_fix: could not remove playlist char *url declaration", file=sys.stderr)
     sys.exit(1)
