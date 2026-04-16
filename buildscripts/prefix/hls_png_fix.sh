@@ -4,6 +4,7 @@
 # Usage:
 #   hls_png_fix.sh [path-to-ffmpeg-source]
 #
+# Python logic lives in hls_png_fix.py so CRLF in this shell script cannot break a heredoc.
 # Build-time logs go to stderr with prefix [hls_png_fix].
 # Runtime logs use both AV_LOG_VERBOSE and AV_LOG_WARNING for visibility.
 
@@ -11,7 +12,8 @@ log() {
 	printf '[hls_png_fix] %s\n' "$1" >&2
 }
 
-target_dir="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/deps/ffmpeg}"
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+target_dir="${1:-$(cd "$here/.." && pwd)/deps/ffmpeg}"
 target_file="$target_dir/libavformat/hls.c"
 
 log "target_dir=$target_dir"
@@ -34,82 +36,41 @@ else
 	log "WARN: expected av_probe_input_buffer anchor string not found verbatim; patch may still match with regex"
 fi
 
-log "running python rewrite..."
+# Pick a real Python 3. Skip Windows "python3" under WindowsApps (often a store stub that exits 49).
+pick_python() {
+	local c path
+	for c in python3 python; do
+		path="$(command -v "$c" 2>/dev/null)" || continue
+		case "$path" in
+			*[/\\]WindowsApps[/\\]* | *[/\\]windowsapps[/\\]*) continue ;;
+		esac
+		if ! "$c" -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 6) else 1)" >/dev/null 2>&1; then
+			continue
+		fi
+		printf '%s\n' "$c"
+		return 0
+	done
+	return 1
+}
 
-# Do not use `python3 - "$file" <<PY` — on some shells/platforms the file argument
-# interacts badly with stdin heredocs and the script never runs correctly.
+if ! PY="$(pick_python)"; then
+	log "ERROR: no usable Python 3.6+ found (python3/python); avoid WindowsApps python stubs"
+	exit 1
+fi
+
+log "running python rewrite ($PY)..."
+
 export HLS_PNG_FIX_TARGET_FILE="$target_file"
-python3 <<'PY'
-import os
-import re
-import sys
-from pathlib import Path
-
-
-def log(msg: str) -> None:
-    print(f"[hls_png_fix] {msg}", file=sys.stderr)
-
-
-path = Path(os.environ["HLS_PNG_FIX_TARGET_FILE"])
-text = path.read_text(encoding="utf-8")
-text = text.replace("\r\n", "\n")
-orig = text
-log(f"read {path} ({len(text)} chars)")
-
-inject_after_probe = re.compile(
-    r"(^[ \t]*ret\s*=\s*av_probe_input_buffer\(&pls->pb\.pub,\s*&in_fmt,\s*url,\s*NULL,\s*0,\s*0\);\s*\n)",
-    flags=re.M,
-)
-
-m = inject_after_probe.search(text)
-if m:
-    snippet = m.group(1).replace("\n", "\\n")
-    log(f"regex matched probe line at offset {m.start()}: {snippet[:120]}...")
-else:
-    log("ERROR: regex did not match av_probe_input_buffer line")
-
-# Note: this workaround does NOT strip PNG bytes from segments; it forces the MPEG-TS
-# demuxer after libavformat's probe step so PNG-disguised TS can be opened as mpegts.
-injected_block = (
-    "            /* HLS_PNG_FIX_FORCE_MPEGTS: force mpegts demuxer for TS disguised as PNG */\n"
-    "            av_log(s, AV_LOG_WARNING, \"HLS_PNG_FIX_HIT: forcing mpegts after probe ret=%d\\n\", ret);\n"
-    "            av_log(s, AV_LOG_VERBOSE, \"HLS_PNG_FIX: after av_probe_input_buffer ret=%d, "
-    "forcing mpegts demuxer (no PNG header stripping)\\n\", ret);\n"
-    "            if (ret < 0)\n"
-    "                ret = 0;\n"
-    "            void *iter = NULL;\n"
-    "            while ((in_fmt = av_demuxer_iterate(&iter)))\n"
-    "                if (strstr(in_fmt->name, \"mpegts\"))\n"
-    "                    break;\n"
-    "            if (!in_fmt)\n"
-    "                in_fmt = av_find_input_format(\"mpegts\");\n"
-    "            av_log(s, AV_LOG_WARNING, \"HLS_PNG_FIX_HIT: selected sub-demuxer '%s'\\n\",\n"
-    "                 in_fmt && in_fmt->name ? in_fmt->name : \"(null)\");\n"
-    "            av_log(s, AV_LOG_VERBOSE, \"HLS_PNG_FIX: selected sub-demuxer '%s'\\n\",\n"
-    "                 in_fmt && in_fmt->name ? in_fmt->name : \"(null)\");\n"
-)
-
-text, n = inject_after_probe.subn(r"\1" + injected_block, text, count=1)
-if n != 1:
-    log("ERROR: probe line not found or multiple ambiguous matches")
-    sys.exit(1)
-
-log(f"substitution count={n}, bytes delta={len(text) - len(orig)}")
-
-if text == orig:
-    log("ERROR: no changes made after substitution")
-    sys.exit(1)
-
-if "HLS_PNG_FIX_FORCE_MPEGTS" not in text:
-    log("ERROR: marker missing after patch")
-    sys.exit(1)
-
-path.write_text(text, encoding="utf-8")
-log("wrote patched hls.c OK")
-PY
+"$PY" "$here/hls_png_fix.py"
+py_status=$?
 unset HLS_PNG_FIX_TARGET_FILE
 
-log "python finished exit=$?"
+log "python finished exit=$py_status"
+
+if [ "$py_status" -ne 0 ]; then
+	log "ERROR: python patch failed (exit $py_status)"
+	exit 1
+fi
 
 if grep -q "HLS_PNG_FIX_FORCE_MPEGTS" "$target_file"; then
 	log "verified marker in file on disk"

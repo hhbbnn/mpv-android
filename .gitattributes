@@ -1,0 +1,2 @@
+# Bash heredocs and many NDK build scripts require LF; avoid CRLF checkouts on Windows.
+buildscripts/**/*.sh text eol=lf
