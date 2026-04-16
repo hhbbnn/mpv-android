@@ -36,7 +36,11 @@ fi
 
 log "running python rewrite..."
 
-python3 - "$target_file" <<'PY'
+# Do not use `python3 - "$file" <<PY` — on some shells/platforms the file argument
+# interacts badly with stdin heredocs and the script never runs correctly.
+export HLS_PNG_FIX_TARGET_FILE="$target_file"
+python3 <<'PY'
+import os
 import re
 import sys
 from pathlib import Path
@@ -46,7 +50,7 @@ def log(msg: str) -> None:
     print(f"[hls_png_fix] {msg}", file=sys.stderr)
 
 
-path = Path(sys.argv[1])
+path = Path(os.environ["HLS_PNG_FIX_TARGET_FILE"])
 text = path.read_text(encoding="utf-8")
 text = text.replace("\r\n", "\n")
 orig = text
@@ -103,6 +107,7 @@ if "HLS_PNG_FIX_FORCE_MPEGTS" not in text:
 path.write_text(text, encoding="utf-8")
 log("wrote patched hls.c OK")
 PY
+unset HLS_PNG_FIX_TARGET_FILE
 
 log "python finished exit=$?"
 
