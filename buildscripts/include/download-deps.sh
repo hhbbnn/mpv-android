@@ -47,8 +47,9 @@ fi
 # HLS PNG workaround: must run whenever ffmpeg tree exists (fatal if patch fails).
 echo "[hls_png_fix] applying patch..." >&2
 bash ../prefix/hls_png_fix.sh ffmpeg
-if ! grep -q "HLS_PNG_FIX_FORCE_MPEGTS" ffmpeg/libavformat/hls.c; then
-	echo "[hls_png_fix] ERROR: marker missing in ffmpeg/libavformat/hls.c" >&2
+if ! grep -q "HLS_PNG_FIX_FORCE_MPEGTS" ffmpeg/libavformat/hls.c || \
+   ! grep -q "MPEGTS_PROBE_SKIP_PNG" ffmpeg/libavformat/mpegts.c; then
+	echo "[hls_png_fix] ERROR: patch marker missing in ffmpeg/libavformat/hls.c or mpegts.c" >&2
 	exit 1
 fi
 

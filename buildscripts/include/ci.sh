@@ -30,8 +30,9 @@ build_prefix() {
 
 	msg "Fetching deps"
 	IN_CI=1 ./include/download-deps.sh
-	if ! grep -q "HLS_PNG_FIX_FORCE_MPEGTS" deps/ffmpeg/libavformat/hls.c; then
-		echo "ERROR: HLS PNG patch marker missing after download-deps" >&2
+	if ! grep -q "HLS_PNG_FIX_FORCE_MPEGTS" deps/ffmpeg/libavformat/hls.c || \
+	   ! grep -q "MPEGTS_PROBE_SKIP_PNG" deps/ffmpeg/libavformat/mpegts.c; then
+		echo "ERROR: PNG/TS patch marker missing after download-deps" >&2
 		exit 1
 	fi
 
@@ -81,8 +82,9 @@ fi
 
 msg "Ensure patched FFmpeg sources before native build"
 IN_CI=1 ./include/download-deps.sh
-if ! grep -q "HLS_PNG_FIX_FORCE_MPEGTS" deps/ffmpeg/libavformat/hls.c; then
-	echo "ERROR: HLS PNG patch marker missing in deps/ffmpeg/libavformat/hls.c" >&2
+if ! grep -q "HLS_PNG_FIX_FORCE_MPEGTS" deps/ffmpeg/libavformat/hls.c || \
+   ! grep -q "MPEGTS_PROBE_SKIP_PNG" deps/ffmpeg/libavformat/mpegts.c; then
+	echo "ERROR: PNG/TS patch marker missing in deps/ffmpeg libavformat sources" >&2
 	exit 1
 fi
 
@@ -95,8 +97,9 @@ msg "Building mpv (armv7l)"
 
 msg "Building dependencies (arm64 / arm64-v8a)"
 IN_CI=1 ./include/download-deps.sh
-if ! grep -q "HLS_PNG_FIX_FORCE_MPEGTS" deps/ffmpeg/libavformat/hls.c; then
-	echo "ERROR: HLS PNG patch marker missing before arm64 deps" >&2
+if ! grep -q "HLS_PNG_FIX_FORCE_MPEGTS" deps/ffmpeg/libavformat/hls.c || \
+   ! grep -q "MPEGTS_PROBE_SKIP_PNG" deps/ffmpeg/libavformat/mpegts.c; then
+	echo "ERROR: PNG/TS patch marker missing before arm64 deps" >&2
 	exit 1
 fi
 ./buildall.sh --arch arm64 --only-deps mpv

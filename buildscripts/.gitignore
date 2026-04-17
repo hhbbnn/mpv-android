@@ -5,5 +5,6 @@ prefix
 prefix/*
 !prefix/hls_png_fix.sh
 !prefix/hls_png_fix.patch
+!prefix/mpegts_png_probe.patch
 prefix64
 *.tgz
