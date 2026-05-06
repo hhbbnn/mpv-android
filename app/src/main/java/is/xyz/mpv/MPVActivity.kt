@@ -180,6 +180,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
     private var ignoreAudioFocus = false
     private var playlistExitWarning = true
+    private var newIntentReplace = false
 
     private var smoothSeekGesture = false
     /* * */
@@ -218,16 +219,17 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             if (lockedUI) false else gestures.onTouchEvent(e)
         }
 
-        ViewCompat.setOnApplyWindowInsetsListener(binding.outside) { _, windowInsets ->
+        ViewCompat.setOnApplyWindowInsetsListener(binding.outside) { v, windowInsets ->
             // guidance: https://medium.com/androiddevelopers/gesture-navigation-handling-visual-overlaps-4aed565c134c
-            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val insets2 = windowInsets.getInsets(WindowInsetsCompat.Type.displayCutout())
-            binding.outside.updateLayoutParams<MarginLayoutParams> {
+            val insets = windowInsets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            v.updateLayoutParams<MarginLayoutParams> {
                 // avoid system bars and cutout
-                leftMargin = Math.max(insets.left, insets2.left)
-                topMargin = Math.max(insets.top, insets2.top)
-                bottomMargin = Math.max(insets.bottom, insets2.bottom)
-                rightMargin = Math.max(insets.right, insets2.right)
+                leftMargin = insets.left
+                topMargin = insets.top
+                bottomMargin = insets.bottom
+                rightMargin = insets.right
             }
             WindowInsetsCompat.CONSUMED
         }
@@ -336,6 +338,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         // Suppress any further callbacks
         activityIsForeground = false
 
+        if (becomingNoisyReceiverRegistered) {
+            unregisterReceiver(becomingNoisyReceiver)
+            becomingNoisyReceiverRegistered = false
+        }
+
         BackgroundPlaybackService.mediaToken = null
         mediaSession?.let {
             it.isActive = false
@@ -368,8 +375,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         }
 
         if (!activityIsForeground && didResumeBackgroundPlayback) {
-            MPVLib.command(arrayOf("loadfile", filepath, "append"))
-            showToast(getString(R.string.notice_file_appended))
+            if (this.newIntentReplace) {
+                MPVLib.command(arrayOf("loadfile", filepath, "replace"))
+                showToast(getString(R.string.notice_file_play))
+            } else {
+                MPVLib.command(arrayOf("loadfile", filepath, "append"))
+                showToast(getString(R.string.notice_file_appended))
+            }
             moveTaskToBack(true)
         } else {
             MPVLib.command(arrayOf("loadfile", filepath))
@@ -489,6 +501,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         this.useTimeRemaining = prefs.getBoolean("use_time_remaining", false)
         this.ignoreAudioFocus = prefs.getBoolean("ignore_audio_focus", false)
         this.playlistExitWarning = prefs.getBoolean("playlist_exit_warning", true)
+        this.newIntentReplace = prefs.getBoolean("new_intent_replace", false)
         this.smoothSeekGesture = prefs.getBoolean("seek_gesture_smooth", false)
     }
 
