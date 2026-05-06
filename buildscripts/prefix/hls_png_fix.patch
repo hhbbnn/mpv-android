@@ -1,17 +1,20 @@
 --- a/libavformat/hls.c
 +++ b/libavformat/hls.c
-@@ -762,6 +762,11 @@
+@@ -761,7 +761,12 @@
+             if(av_match_name("mp4", in_fmt->name) || av_match_name("aac", in_fmt->name)) {
                  matchF |=      av_match_ext(    seg->url, "ts,m2t,m2ts,mts,mpg,m4s,mpeg,mpegts,cmfv,cmfa")
                            + 2*(ff_match_url_ext(seg->url, "ts,m2t,m2ts,mts,mpg,m4s,mpeg,mpegts,cmfv,cmfa") > 0);
              }
+-        } else if (!strcmp(in_fmt->name, "mpegts")) {
 +            /* HLS_PNG_FIX: allow .png segment URLs when demuxer is MPEG-TS */
 +            if (av_match_name("mpegts", in_fmt->name)) {
 +                matchF |=      av_match_ext(    seg->url, "ts,m2t,m2ts,mts,mpg,m4s,mpeg,mpegts,cmfv,cmfa,png")
 +                          + 2*(ff_match_url_ext(seg->url, "ts,m2t,m2ts,mts,mpg,m4s,mpeg,mpegts,cmfv,cmfa,png") > 0);
 +            }
-         } else if (!strcmp(in_fmt->name, "mpegts")) {
++        } else if (!strcmp(in_fmt->name, "mpegts")) {
              const char *str = "ts,m2t,m2ts,mts,mpg,m4s,mpeg,mpegts"
                                ",html" // https://flash1.bogulus.cfd/
+                             ;
 @@ -2326,6 +2331,22 @@
              pls->ctx->interrupt_callback = s->interrupt_callback;
              url = av_strdup(pls->segments[0]->url);
