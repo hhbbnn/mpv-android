@@ -101,10 +101,10 @@
 +        buf += sync;
 +        size -= sync;
 +    }
- 
++
      int maxscore = 0;
      int sumscore = 0;
-@@ -3266,9 +3345,9 @@
+@@ -3267,9 +3346,9 @@
  
      for (i = 0; i<check_count; i+=CHECK_BLOCK) {
          int left = FFMIN(check_count - i, CHECK_BLOCK);
