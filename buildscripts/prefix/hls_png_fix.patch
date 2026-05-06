@@ -12,7 +12,7 @@
          } else if (!strcmp(in_fmt->name, "mpegts")) {
              const char *str = "ts,m2t,m2ts,mts,mpg,m4s,mpeg,mpegts"
                                ",html" // https://flash1.bogulus.cfd/
-@@ -2324,6 +2329,22 @@
+@@ -2326,6 +2331,22 @@
              pls->ctx->interrupt_callback = s->interrupt_callback;
              url = av_strdup(pls->segments[0]->url);
              ret = av_probe_input_buffer(&pls->pb.pub, &in_fmt, url, NULL, 0, 0);
