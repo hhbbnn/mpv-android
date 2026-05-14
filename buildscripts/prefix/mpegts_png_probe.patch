@@ -1,6 +1,6 @@
 --- a/libavformat/mpegts.c
 +++ b/libavformat/mpegts.c
-@@ -3251,9 +3251,88 @@
+@@ -3251,9 +3251,103 @@
      return ret;
  }
  
@@ -104,7 +104,8 @@
 +
      int maxscore = 0;
      int sumscore = 0;
-@@ -3267,9 +3346,9 @@
+     int i;
+@@ -3266,9 +3360,9 @@
  
      for (i = 0; i<check_count; i+=CHECK_BLOCK) {
          int left = FFMIN(check_count - i, CHECK_BLOCK);
