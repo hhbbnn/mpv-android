@@ -14,7 +14,7 @@ v_unibreak=7.0
 v_harfbuzz=14.2.0
 v_fribidi=1.0.16
 v_freetype=2.14.3
-v_mbedtls=3.6.6
+v_mbedtls=3.6.5
 v_libxml2=2.15.3
 v_fontconfig=2.17.1
 
@@ -39,8 +39,8 @@ dep_mpv_android=(mpv)
 
 ## for CI workflow
 
-# pinned ffmpeg revision (FFmpeg 8.1, includes 9047fa1)
-v_ci_ffmpeg=n8.1
+# pinned ffmpeg revision (FFmpeg 8.1.1)
+v_ci_ffmpeg=n8.1.1
 
 # filename used to uniquely identify a build prefix
-ci_tarball="prefix-ndk-${v_ndk}-lua-${v_lua}-unibreak-${v_unibreak}-harfbuzz-${v_harfbuzz}-fribidi-${v_fribidi}-freetype-${v_freetype}-libxml2-${v_libxml2}-fontconfig-${v_fontconfig}-mbedtls-${v_mbedtls}-ffmpeg-${v_ci_ffmpeg}-hls-png-fix11.tgz"
+ci_tarball="prefix-ndk-${v_ndk}-lua-${v_lua}-unibreak-${v_unibreak}-harfbuzz-${v_harfbuzz}-fribidi-${v_fribidi}-freetype-${v_freetype}-libxml2-${v_libxml2}-fontconfig-${v_fontconfig}-mbedtls-${v_mbedtls}-ffmpeg-${v_ci_ffmpeg}-hls-png-fix12.tgz"
